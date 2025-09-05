@@ -1,0 +1,109 @@
+import type { Metadata } from "next";
+import { Lora, Inter, Roboto, Poppins, Merriweather, Open_Sans, Source_Sans_3 } from "next/font/google";
+import "./globals.css";
+import { getSSRBlazeBlogClient, SiteConfig } from "@/lib/blazeblog";
+
+// Preload a small set of safe web fonts; pick at runtime from site config
+const lora = Lora({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
+const roboto = Roboto({ subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
+const merriweather = Merriweather({ subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], display: "swap" });
+const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "600", "700"], display: "swap" });
+const sourceSans = Source_Sans_3({ subsets: ["latin"], weight: ["400", "600", "700"], display: "swap" });
+
+const fontClassMap: Record<string, string> = {
+  lora: lora.className,
+  inter: inter.className,
+  roboto: roboto.className,
+  poppins: poppins.className,
+  merriweather: merriweather.className,
+  "open sans": openSans.className,
+  "source sans 3": sourceSans.className,
+};
+
+async function getSiteConfig(): Promise<SiteConfig | null> {
+  try {
+    const client = await getSSRBlazeBlogClient();
+    const config = await client.getSiteConfig();
+    return config;
+  } catch (error) {
+    console.error("Failed to fetch site config:", error);
+    return null;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+
+  if (!config) {
+    return {
+      title: "Blog",
+      description: "An awesome blog.",
+    };
+  }
+
+  return {
+    title: {
+      default: config.siteConfig.seoTitle || "BlazeBlog",
+      template: `%s | ${config.siteConfig.seoTitle || "BlazeBlog"}`,
+    },
+    description: config.siteConfig.homeMetaDescription,
+    // more metadata can be added here
+  };
+}
+
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import ThemePreviewBar from "@/components/ThemePreviewBar";
+import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/MobileHeader";
+
+// Placeholder for Maintenance Page
+const MaintenancePage = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen text-center">
+    <h1 className="text-4xl font-bold">Down for Maintenance</h1>
+    <p className="mt-4 text-lg">We are currently performing maintenance. Please check back later.</p>
+  </div>
+);
+
+export default async function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const siteConfig = await getSiteConfig();
+
+  if (!siteConfig || siteConfig.featureFlags.maintenanceMode) {
+    return (
+      <html lang="en" data-theme="retro">
+        <body className={lora.className}>
+          <MaintenancePage />
+        </body>
+      </html>
+    );
+  }
+
+  const theme = siteConfig.theme?.colorPalette || "retro";
+  const configuredFont = siteConfig.theme?.fontFamily || "poppins";
+  const key = configuredFont.toLowerCase().replace(/\s+/g, "_");
+  const fontClass = fontClassMap[key] || lora.className;
+
+  return (
+    <html lang="en" data-theme={theme}>
+      <body className={fontClass}>
+        <ThemePreviewBar />
+        <div className="flex flex-col min-h-screen">
+          <MobileHeader config={siteConfig} />
+          <div className="flex flex-1">
+            <Sidebar config={siteConfig} />
+            <main className="flex-grow p-6 md:p-12 ml-0 md:ml-64">
+              {children}
+            </main>
+          </div>
+          <Footer config={siteConfig} />
+        </div>
+      </body>
+    </html>
+  );
+}
