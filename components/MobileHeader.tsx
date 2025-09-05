@@ -9,7 +9,7 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ config }: MobileHeaderProps) => {
   return (
-    <header className="md:hidden flex items-center justify-between p-4 border-b border-base-300 bg-base-100">
+    <header className="md:hidden flex items-center justify-between px-6 py-4 border-b border-base-300 bg-base-100">
       <Link href="/" className="text-xl font-bold">
         {config.siteConfig.h1 || "BlazeBlog"}
       </Link>

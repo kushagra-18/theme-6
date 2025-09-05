@@ -26,11 +26,11 @@ const PostCard = ({ post }: PostCardProps) => {
             {post.category.name}
           </Link>
         )}
-        <h2 className="mt-2 text-2xl font-bold leading-tight">
+        <h2 className="mt-3 text-3xl font-bold leading-tight">
           <Link href={`/${post.slug}`} className="hover:underline">{post.title}</Link>
         </h2>
-        <p className="mt-2 text-base-content/70">{post.excerpt}</p>
-        <div className="flex items-center mt-4 text-sm text-base-content/50">
+        <p className="mt-3 text-base-content/70">{post.excerpt}</p>
+        <div className="flex items-center mt-5 text-sm text-base-content/50">
           <span>By {post.user.username}</span>
           <span className="mx-2">•</span>
           <span>{post.readingTime} min read</span>

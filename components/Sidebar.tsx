@@ -30,18 +30,18 @@ const Sidebar = async ({ config }: SidebarProps) => {
             {config.siteConfig.homeMetaDescription}
           </p>
 
-          <div className="mt-12">
+          <nav className="mt-12">
             <h3 className="text-sm font-semibold tracking-widest uppercase text-base-content/50">Tags</h3>
-            <ul className="mt-4 space-y-2">
+            <ul className="mt-4 space-y-1">
               {tags.map((tag) => (
                 <li key={tag.id}>
-                  <Link href={`/tag/${tag.slug}`} className="text-base-content/80 hover:text-base-content">
+                  <Link href={`/tag/${tag.slug}`} className="block p-2 -ml-2 rounded-md text-base-content/80 hover:bg-base-300 hover:text-base-content">
                     {tag.name}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
         </div>
 
         <div className="flex-shrink-0">
