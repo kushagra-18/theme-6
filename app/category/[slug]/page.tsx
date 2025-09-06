@@ -7,29 +7,28 @@ type Props = {
   params: { slug: string };
 };
 
-export default async function TagPage({ params }: Props) {
+export default async function CategoryPage({ params }: Props) {
   const client = await getSSRBlazeBlogClient();
 
   const [postsResult, config] = await Promise.all([
-    client.getPosts({ tags: [params.slug], limit: 12 }),
+    client.getPosts({ category: params.slug, limit: 12 }),
     getCachedSiteConfig()
   ]);
 
-  const { posts } = postsResult;
+  const { posts, category } = postsResult;
 
   if (!posts || posts.length === 0 || !config) {
     notFound();
   }
 
-  const tag = posts[0].tags.find(t => t.slug === params.slug);
-  const tagName = tag?.name || params.slug.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+  const categoryName = category?.name || params.slug.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="text-center mb-12">
-        <h1 className="text-5xl font-bold">{tagName}</h1>
+        <h1 className="text-5xl font-bold">{categoryName}</h1>
         <p className="mt-4 text-lg max-w-2xl mx-auto text-base-content/70">
-          A collection of posts tagged with "{tagName}". Explore the stories and articles that dive deep into this topic.
+          A collection of posts in the "{categoryName}" category. Explore the stories and articles that dive deep into this topic.
         </p>
       </header>
 

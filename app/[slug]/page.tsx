@@ -1,4 +1,5 @@
 import { getSSRBlazeBlogClient } from "@/lib/blazeblog";
+import { getCachedSiteConfig } from "@/lib/config";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Image from "next/image";
@@ -27,7 +28,7 @@ export default async function PostPage({ params }: Props) {
 
   const [result, config] = await Promise.all([
     client.getPost(params.slug),
-    client.getSiteConfig()
+    getCachedSiteConfig()
   ]);
 
   if (!result || !config) {

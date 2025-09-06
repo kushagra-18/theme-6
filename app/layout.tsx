@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSSRBlazeBlogClient, SiteConfig } from "@/lib/blazeblog";
+import { getCachedSiteConfig } from "@/lib/config";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -25,19 +26,8 @@ const fontClassMap: Record<string, string> = {
   "source sans 3": sourceSans.className,
 };
 
-async function getSiteConfig(): Promise<SiteConfig | null> {
-  try {
-    const client = await getSSRBlazeBlogClient();
-    const config = await client.getSiteConfig();
-    return config;
-  } catch (error) {
-    console.error("Failed to fetch site config:", error);
-    return null;
-  }
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const config = await getCachedSiteConfig();
   if (!config) {
     return {
       title: "Blog",
@@ -65,7 +55,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const siteConfig = await getSiteConfig();
+  const siteConfig = await getCachedSiteConfig();
 
   if (!siteConfig || siteConfig.featureFlags.maintenanceMode) {
     return (

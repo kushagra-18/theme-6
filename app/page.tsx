@@ -5,12 +5,14 @@ import FeaturedCard from "@/components/FeaturedCard";
 import LatestPostCard from "@/components/LatestPostCard";
 import TaglineBlock from "@/components/TaglineBlock";
 
+import { getCachedSiteConfig } from "@/lib/config";
+
 export default async function HomePage() {
   const client = await getSSRBlazeBlogClient();
 
   const [postsResult, config] = await Promise.all([
     client.getPosts({ limit: 15 }),
-    client.getSiteConfig()
+    getCachedSiteConfig()
   ]);
 
   const { posts } = postsResult;
