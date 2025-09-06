@@ -10,7 +10,24 @@ interface HeaderProps {
 
 const Header = ({ config }: HeaderProps) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const navLinks = config.headerNavigationLinks || [];
+
+  const allNavLinks = config.headerNavigationLinks || [];
+  const { featureFlags } = config;
+
+  const navLinks = allNavLinks.filter(link => {
+    const label = link.label.toLowerCase();
+    if (label.includes('categories')) {
+      return featureFlags.enableCategoriesPage;
+    }
+    if (label.includes('tags')) {
+      return featureFlags.enableTagsPage;
+    }
+    if (label.includes('authors')) {
+      return featureFlags.enableAuthorsPage;
+    }
+    // Assume other links are always enabled
+    return true;
+  });
 
   return (
     <>

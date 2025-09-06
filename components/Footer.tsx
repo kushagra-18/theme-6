@@ -6,13 +6,24 @@ interface FooterProps {
 }
 
 const Footer = ({ config }: FooterProps) => {
-  const footerLinks = config.footerNavigationLinks || [
-    // Mock links if not provided by API
-    { label: "Advertise", url: "/advertise" },
-    { label: "Sponsor", url: "/sponsor" },
-    { label: "Terms & conditions", url: "/terms" },
-    { label: "Data & privacy", url: "/privacy" },
-  ];
+  const allFooterLinks = config.footerNavigationLinks || [];
+  const { featureFlags } = config;
+
+  const footerLinks = allFooterLinks.filter(link => {
+    const label = link.label.toLowerCase();
+    if (label.includes('categories')) {
+      return featureFlags.enableCategoriesPage;
+    }
+    if (label.includes('tags')) {
+      return featureFlags.enableTagsPage;
+    }
+    if (label.includes('authors')) {
+      return featureFlags.enableAuthorsPage;
+    }
+    // Assume other utility links like "Terms" or "Privacy" are always enabled
+    return true;
+  });
+
   const siteTitle = config.siteConfig.seoTitle || "BlazeBlog";
 
   return (

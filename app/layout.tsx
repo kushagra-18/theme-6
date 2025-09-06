@@ -4,55 +4,90 @@ import { getSSRBlazeBlogClient, SiteConfig } from "@/lib/blazeblog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-// This is a temporary minimal layout to allow for component implementation.
-// It will be fleshed out later.
+import { Lora, Inter, Roboto, Poppins, Merriweather, Open_Sans, Source_Sans_3 } from "next/font/google";
 
-export const metadata: Metadata = {
-  title: "BlazeBlog",
-  description: "A blog powered by BlazeBlog",
+// Preload a small set of safe web fonts; pick at runtime from site config
+const lora = Lora({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
+const roboto = Roboto({ subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
+const merriweather = Merriweather({ subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], display: "swap" });
+const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "600", "700"], display: "swap" });
+const sourceSans = Source_Sans_3({ subsets: ["latin"], weight: ["400", "600", "700"], display: "swap" });
+
+const fontClassMap: Record<string, string> = {
+  lora: lora.className,
+  inter: inter.className,
+  roboto: roboto.className,
+  poppins: poppins.className,
+  merriweather: merriweather.className,
+  "open sans": openSans.className,
+  "source sans 3": sourceSans.className,
 };
+
+async function getSiteConfig(): Promise<SiteConfig | null> {
+  try {
+    const client = await getSSRBlazeBlogClient();
+    const config = await client.getSiteConfig();
+    return config;
+  } catch (error) {
+    console.error("Failed to fetch site config:", error);
+    return null;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  if (!config) {
+    return {
+      title: "Blog",
+      description: "An awesome blog.",
+    };
+  }
+  return {
+    title: {
+      default: config.siteConfig.seoTitle || "BlazeBlog",
+      template: `%s | ${config.siteConfig.seoTitle || "BlazeBlog"}`,
+    },
+    description: config.siteConfig.homeMetaDescription,
+  };
+}
+
+const MaintenancePage = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen text-center">
+    <h1 className="text-4xl font-bold">Down for Maintenance</h1>
+    <p className="mt-4 text-lg">We are currently performing maintenance. Please check back later.</p>
+  </div>
+);
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Mocking siteConfig for now as we are focusing on component implementation
-  const mockSiteConfig: SiteConfig = {
-    featureFlags: {
-      enableTagsPage: true,
-      maintenanceMode: false,
-      enableAuthorsPage: true,
-      autoApproveComments: true,
-      enableCommentsReply: true,
-      enableCategoriesPage: true,
-      enableComments: true,
-      enableNewsletters: true,
-    },
-    siteConfig: {
-      h1: "News Wave",
-      logoPath: "",
-      seoTitle: "News Wave",
-      aboutUsContent: "",
-      homeMetaDescription: "A modern blog.",
-    },
-    analytics: {} as any,
-    analyticsScripts: { scripts: [] },
-    headerNavigationLinks: [
-      { label: "Environment", url: "/tag/environment" },
-      { label: "Economy", url: "/tag/economy" },
-      { label: "Health", url: "/tag/health" },
-      { label: "Culture", url: "/tag/culture" },
-      { label: "About", url: "/about" },
-    ],
-  };
+  const siteConfig = await getSiteConfig();
+
+  if (!siteConfig || siteConfig.featureFlags.maintenanceMode) {
+    return (
+      <html lang="en" data-theme="light">
+        <body className={lora.className}>
+          <MaintenancePage />
+        </body>
+      </html>
+    );
+  }
+
+  const theme = siteConfig.theme?.colorPalette || "light";
+  const configuredFont = siteConfig.theme?.fontFamily || "poppins";
+  const key = configuredFont.toLowerCase().replace(/\s+/g, "_");
+  const fontClass = fontClassMap[key] || poppins.className;
 
   return (
-    <html lang="en" data-theme="light">
-      <body>
-        <Header config={mockSiteConfig} />
+    <html lang="en" data-theme={theme}>
+      <body className={fontClass}>
+        <Header config={siteConfig} />
         <main className="flex-grow">{children}</main>
-        <Footer config={mockSiteConfig} />
+        <Footer config={siteConfig} />
       </body>
     </html>
   );
