@@ -1,18 +1,25 @@
-import { Post } from "@/lib/blazeblog";
+import { Post, SiteConfig } from "@/lib/blazeblog";
 import Link from "next/link";
 import Image from "next/image";
+import { resizeImageUrl } from "@/lib/image";
 
 interface CardProps {
   post: Post;
+  config: SiteConfig;
 }
 
-const FeaturedCard = ({ post }: CardProps) => {
+const FeaturedCard = ({ post, config }: CardProps) => {
+  let imageUrl = post.featuredImage;
+  if (config.featureFlags.allowImageResize && imageUrl) {
+    imageUrl = resizeImageUrl(imageUrl, { width: 400, height: 300, fit: 'cover', format: 'webp' });
+  }
+
   return (
     <article>
-      {post.featuredImage && (
+      {imageUrl && (
         <Link href={`/${post.slug}`}>
           <Image
-            src={post.featuredImage}
+            src={imageUrl}
             alt={post.title}
             width={400}
             height={300}

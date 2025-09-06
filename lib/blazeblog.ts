@@ -163,6 +163,7 @@ interface NavigationLink {
 
 export interface SiteConfig {
   featureFlags: {
+    allowImageResize?: boolean;
     enableTagsPage: boolean;
     maintenanceMode: boolean;
     enableAuthorsPage: boolean;

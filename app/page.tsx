@@ -1,4 +1,4 @@
-import { getSSRBlazeBlogClient } from "@/lib/blazeblog";
+import { getSSRBlazeBlogClient, SiteConfig } from "@/lib/blazeblog";
 import LeadCard from "@/components/LeadCard";
 import SecondaryCard from "@/components/SecondaryCard";
 import FeaturedCard from "@/components/FeaturedCard";
@@ -7,9 +7,17 @@ import TaglineBlock from "@/components/TaglineBlock";
 
 export default async function HomePage() {
   const client = await getSSRBlazeBlogClient();
-  // Fetch enough posts for all sections. 1 lead + 2 secondary + 6 featured + 6 latest = 15
-  const { posts } = await client.getPosts({ limit: 15 });
 
+  const [postsResult, config] = await Promise.all([
+    client.getPosts({ limit: 15 }),
+    client.getSiteConfig()
+  ]);
+
+  const { posts } = postsResult;
+
+  if (!config) {
+    return <p className="text-center text-error">Could not load site configuration.</p>;
+  }
   if (posts.length === 0) {
     return <p className="text-center">No posts found.</p>;
   }
@@ -23,9 +31,9 @@ export default async function HomePage() {
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
       <div className="grid grid-cols-12 grid-rows-2 gap-4 h-[600px] mb-16">
-        {leadPost && <LeadCard post={leadPost} />}
+        {leadPost && <LeadCard post={leadPost} config={config} />}
         {secondaryPosts.map((post) => (
-          <SecondaryCard key={post.id} post={post} />
+          <SecondaryCard key={post.id} post={post} config={config} />
         ))}
       </div>
 
@@ -35,7 +43,7 @@ export default async function HomePage() {
           <h2 className="text-3xl font-bold mb-8">Featured</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredPosts.map((post) => (
-              <FeaturedCard key={post.id} post={post} />
+              <FeaturedCard key={post.id} post={post} config={config} />
             ))}
           </div>
         </section>
@@ -50,7 +58,7 @@ export default async function HomePage() {
           <h2 className="text-3xl font-bold mb-8">Latest</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
             {latestPosts.map((post) => (
-              <LatestPostCard key={post.id} post={post} />
+              <LatestPostCard key={post.id} post={post} config={config} />
             ))}
           </div>
         </section>

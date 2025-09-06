@@ -20,16 +20,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+import { resizeImageUrl } from "@/lib/image";
+
 export default async function PostPage({ params }: Props) {
   const client = await getSSRBlazeBlogClient();
-  const result = await client.getPost(params.slug);
 
-  if (!result) {
+  const [result, config] = await Promise.all([
+    client.getPost(params.slug),
+    client.getSiteConfig()
+  ]);
+
+  if (!result || !config) {
     notFound();
   }
 
   const { data: post } = result;
   const relatedPosts = post.relatedPosts?.map(rp => rp.relatedPost).slice(0, 3) || [];
+
+  let heroImageUrl = post.featuredImage;
+  if (config.featureFlags.allowImageResize && heroImageUrl) {
+    heroImageUrl = resizeImageUrl(heroImageUrl, { width: 1200, height: 600, fit: 'cover', format: 'webp' });
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -59,10 +70,10 @@ export default async function PostPage({ params }: Props) {
         </header>
 
         {/* Hero Image */}
-        {post.featuredImage && (
+        {heroImageUrl && (
           <figure className="my-8">
             <Image
-              src={post.featuredImage}
+              src={heroImageUrl}
               alt={post.title}
               width={1200}
               height={600}
@@ -85,7 +96,7 @@ export default async function PostPage({ params }: Props) {
           <h2 className="text-3xl font-bold text-center mb-8">Read More</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {relatedPosts.map((relatedPost) => (
-              <FeaturedCard key={relatedPost.id} post={relatedPost} />
+              <FeaturedCard key={relatedPost.id} post={relatedPost} config={config} />
             ))}
           </div>
         </section>

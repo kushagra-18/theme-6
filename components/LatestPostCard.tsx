@@ -1,18 +1,25 @@
-import { Post } from "@/lib/blazeblog";
+import { Post, SiteConfig } from "@/lib/blazeblog";
 import Link from "next/link";
 import Image from "next/image";
+import { resizeImageUrl } from "@/lib/image";
 
 interface CardProps {
   post: Post;
+  config: SiteConfig;
 }
 
-const LatestPostCard = ({ post }: CardProps) => {
+const LatestPostCard = ({ post, config }: CardProps) => {
+  let imageUrl = post.featuredImage;
+  if (config.featureFlags.allowImageResize && imageUrl) {
+    imageUrl = resizeImageUrl(imageUrl, { width: 400, height: 400, fit: 'cover', format: 'webp' });
+  }
+
   return (
     <article className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
-      {post.featuredImage && (
+      {imageUrl && (
         <Link href={`/${post.slug}`} className="md:col-span-1">
           <Image
-            src={post.featuredImage}
+            src={imageUrl}
             alt={post.title}
             width={400}
             height={400}

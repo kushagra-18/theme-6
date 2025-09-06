@@ -1,19 +1,26 @@
-import { Post } from "@/lib/blazeblog";
+import { Post, SiteConfig } from "@/lib/blazeblog";
 import Link from "next/link";
 import Image from "next/image";
+import { resizeImageUrl } from "@/lib/image";
 
 interface CardProps {
   post: Post;
+  config: SiteConfig;
 }
 
-const LeadCard = ({ post }: CardProps) => {
+const LeadCard = ({ post, config }: CardProps) => {
+  let imageUrl = post.featuredImage;
+  if (config.featureFlags.allowImageResize && imageUrl) {
+    imageUrl = resizeImageUrl(imageUrl, { width: 1200, height: 900, fit: 'cover', format: 'webp' });
+  }
+
   return (
     <article className="relative col-span-12 md:col-span-8 row-span-2">
       <Link href={`/${post.slug}`}>
         <div className="relative h-full">
-          {post.featuredImage && (
+          {imageUrl && (
             <Image
-              src={post.featuredImage}
+              src={imageUrl}
               alt={post.title}
               fill
               className="object-cover w-full h-full rounded-lg"
