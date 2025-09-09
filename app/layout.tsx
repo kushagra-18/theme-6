@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getSSRBlazeBlogClient, SiteConfig } from "@/lib/blazeblog";
 import { getCachedSiteConfig } from "@/lib/config";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import NextTopLoader from "nextjs-toploader";
 
 import { Lora, Inter, Roboto, Poppins, Merriweather, Open_Sans, Source_Sans_3 } from "next/font/google";
 
@@ -72,9 +72,12 @@ export default async function RootLayout({
   const key = configuredFont.toLowerCase().replace(/\s+/g, "_");
   const fontClass = fontClassMap[key] || poppins.className;
 
+  console.log("Using font:", theme, "with key:", key, "and class:", fontClass);
+
   return (
     <html lang="en" data-theme={theme}>
       <body className={fontClass}>
+        <NextTopLoader color="#570DF8" crawlSpeed={200} showSpinner={false} height={3} />
         <Header config={siteConfig} />
         <main className="flex-grow">{children}</main>
         <Footer config={siteConfig} />

@@ -41,13 +41,6 @@ const Footer = ({ config }: FooterProps) => {
               ))}
             </nav>
           </div>
-
-          {/* Right: Powered By */}
-          <div className="text-xs mt-4 md:mt-0">
-            <a href="https://blazeblog.co" target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
-              Powered by BlazeBlog
-            </a>
-          </div>
         </div>
       </div>
     </footer>

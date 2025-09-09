@@ -2,6 +2,49 @@ import { config } from "@/config";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api/v1";
 
+interface ResizeOptions {
+  width: number;
+  height: number;
+  fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
+  format?: 'webp' | 'jpeg' | 'png' | 'avif';
+}
+
+export const resizeImageUrl = (url: string, options: ResizeOptions): string => {
+  if (!url) {
+    return "";
+  }
+
+  const params = new URLSearchParams();
+  params.append('width', options.width.toString());
+  params.append('height', options.height.toString());
+  if (options.fit) {
+    params.append('fit', options.fit);
+  }
+  if (options.format) {
+    params.append('format', options.format);
+  }
+
+  if (url.includes('?')) {
+    return `${url}&${params.toString()}`;
+  } else {
+    return `${url}?${params.toString()}`;
+  }
+}
+
+export const getResizedImageUrl = (originalUrl: string, context: 'card' | 'hero' | 'thumbnail' | 'full'): string => {
+  if (!originalUrl) return '';
+
+  const resizeConfigs = {
+    card: { width: 400, height: 300, fit: 'cover' as const, format: 'webp' as const },
+    hero: { width: 1200, height: 600, fit: 'cover' as const, format: 'webp' as const },
+    thumbnail: { width: 150, height: 150, fit: 'cover' as const, format: 'webp' as const },
+    full: { width: 800, height: 600, fit: 'cover' as const, format: 'webp' as const }
+  };
+
+  return resizeImageUrl(originalUrl, resizeConfigs[context]);
+};
+
+
 export interface Post {
   id: number;
   title: string;
@@ -121,9 +164,10 @@ export interface GetPostsResult {
     limit: number;
   };
   pagination: PaginationMeta;
-  // The following are specific to category/tag pages and might not always be present
+  // The following are specific to home/category/tag pages and might not always be present
   seo?: SeoData;
   category?: Category;
+  tags?: Tag[];
 }
 
 export interface SeoData {
@@ -137,7 +181,7 @@ export interface SeoData {
     url: string;
     position: number;
   }>;
-  jsonLd: any[]; // Can be more specific if needed
+  jsonLd: any[];
 }
 
 export interface GetPostResult {
@@ -166,7 +210,8 @@ export interface SiteConfig {
     allowImageResize?: boolean;
     enableTagsPage: boolean;
     maintenanceMode: boolean;
-    enableAuthorsPage: boolean;
+    enableAuthorsPage?: boolean;
+    authorLink?: boolean;
     autoApproveComments: boolean;
     enableCommentsReply: boolean;
     enableCategoriesPage: boolean;
@@ -227,6 +272,7 @@ class BlazeBlogClient {
       'X-domain': domain,
       'Content-Type': 'application/json',
       'X-public-site': 'true',
+      'X-theme-id' : '6',
       ...options?.headers,
     };
 
@@ -246,6 +292,7 @@ class BlazeBlogClient {
 
       const error = new Error();
       error.name = 'APIError';
+      (error as any).status = response.status;
 
       if (typeof errorData === 'object' && errorData !== null) {
         Object.assign(error, errorData);
@@ -272,7 +319,8 @@ class BlazeBlogClient {
     tags?: string[];
     category?: string;
   } = {}): Promise<GetPostsResult> {
-    let endpoint = `/public/posts/home?limit=${limit}&page=${page}`;
+    // Include groupByTag for home feed as requested
+    let endpoint = `/public/posts/home?limit=${limit}&page=${page}&groupByTag=true`;
     let isCategory = false;
 
     if (category) {
@@ -282,10 +330,19 @@ class BlazeBlogClient {
       endpoint = `/public/posts/tag/${tags[0]}?page=${page}&limit=${limit}`;
     }
 
-    const response = await this.makeRequest<any>(endpoint);
+    let response: any;
+    try {
+      response = await this.makeRequest<any>(endpoint);
+    } catch (err: any) {
+      if (endpoint.includes('groupByTag')) {
+        const fallback = `/public/posts/home?limit=${limit}&page=${page}`;
+        response = await this.makeRequest<any>(fallback);
+      } else {
+        throw err;
+      }
+    }
 
     if (isCategory) {
-      // Handle the new, rich category response
       const categoryData = response.data || {};
       const posts = (categoryData.posts || []).map((p: any) => this.transformPost(p));
       const meta = response.meta || { total: posts.length, limit };
@@ -307,7 +364,6 @@ class BlazeBlogClient {
       };
     }
 
-    // Handle home and tag pages (assuming simpler structure)
     const posts = (response.data?.posts || response.data || []).map((p: any) => this.transformPost(p));
     const meta = response.meta || { total: posts.length, limit };
     const totalPages = Math.ceil(meta.total / limit);
@@ -323,18 +379,32 @@ class BlazeBlogClient {
         nextPage: page < totalPages ? page + 1 : null,
         prevPage: page > 1 ? page - 1 : null,
       },
+      seo: response.seo,
+      tags: (response?.tags || response?.data?.tags || []) as Tag[],
     };
   }
 
   async getPost(slug: string, includeRelated = true): Promise<GetPostResult | null> {
     try {
-      // The new API response includes everything, so we request the full object
-      const response = await this.makeRequest<GetPostResult>(`/public/posts/${slug}?includeRelated=${includeRelated}`);
+      const [response, siteConfig] = await Promise.all([
+        this.makeRequest<GetPostResult>(`/public/posts/${slug}?includeRelated=${includeRelated}`),
+        this.getSiteConfig()
+      ]);
 
-      // The transformPost function expects a specific structure, let's adapt
-      // or apply it to the nested post data.
+
       if (response.data) {
         response.data = this.transformPost(response.data) as Post;
+        response.data = this.applyImageResize(response.data, siteConfig);
+
+        if (response.data.relatedPosts && response.data.relatedPosts.length > 0) {
+          response.data.relatedPosts = response.data.relatedPosts.map(relatedItem => ({
+            ...relatedItem,
+            relatedPost: this.applyImageResize(
+              this.transformPost(relatedItem.relatedPost),
+              siteConfig
+            ) as Post
+          }));
+        }
       }
 
       return response;
@@ -494,10 +564,91 @@ class BlazeBlogClient {
     const response = await this.makeRequest<any>('/public/site/configs', {
       cache: 'no-store',
     });
+
+
     if (response && response.data) {
       return response.data;
     }
     return response;
+  }
+
+  async getPostsByAuthor(
+    username: string,
+    { page = 1, limit = 9 }: { page?: number; limit?: number } = {}
+  ): Promise<{ posts: Post[]; pagination: PaginationMeta; seo?: SeoData; author?: any }> {
+    const [response, siteConfig] = await Promise.all([
+      this.makeRequest<any>(`/public/posts/author/${username}?page=${page}&limit=${limit}`),
+      this.getSiteConfig(),
+    ]);
+
+    const rawPosts = (response?.data?.posts ?? response?.posts ?? response?.data ?? []) as any[];
+    let posts = rawPosts.map((p: any) => this.transformPost(p));
+
+    if (siteConfig?.featureFlags.allowImageResize) {
+      posts = posts.map((post: Post) => this.applyImageResize(post, siteConfig));
+    }
+
+    const meta = response?.meta || {
+      total: posts.length,
+      limit,
+      page,
+      totalPages: Math.max(1, Math.ceil(posts.length / limit)),
+    };
+
+    const pagination: PaginationMeta = {
+      total: meta.total,
+      limit: meta.limit,
+      page: meta.page,
+      totalPages: meta.totalPages,
+      nextPage: meta.page < meta.totalPages ? meta.page + 1 : null,
+      prevPage: meta.page > 1 ? meta.page - 1 : null,
+    };
+
+    return {
+      posts,
+      pagination,
+      seo: response?.seo,
+      author: response?.data?.author,
+    };
+  }
+
+  private applyImageResize(post: Post, siteConfig?: SiteConfig): Post {
+    if (!siteConfig?.featureFlags.allowImageResize) {
+      return post;
+    }
+
+    if (post.featuredImage) {
+      post.featuredImage = resizeImageUrl(post.featuredImage, {
+        width: 800,
+        height: 600,
+        fit: 'cover',
+        format: 'webp'
+      });
+    }
+
+    if (post.image) {
+      post.image = resizeImageUrl(post.image, {
+        width: 800,
+        height: 600,
+        fit: 'cover',
+        format: 'webp'
+      });
+    }
+
+    return post;
+  }
+
+
+
+  async submitPublicLeadForm(
+    formId: string,
+    values: Record<string, any>,
+    meta?: { timeTaken?: number; userAgent?: string }
+  ): Promise<ApiResponse<any>> {
+    return this.makeRequest<ApiResponse<any>>(`/public/forms/${formId}`, {
+      method: 'POST',
+      body: JSON.stringify({ id: formId, data: values, timeTaken: meta?.timeTaken, userAgent: meta?.userAgent }),
+    });
   }
 
   async subscribeToNewsletter(data: SubscribeRequest): Promise<ApiResponse<Newsletter>> {
@@ -508,6 +659,19 @@ class BlazeBlogClient {
     });
 
     return response;
+  }
+
+  async getActivePublicLeadForm(): Promise<any | null> {
+    try {
+      const response = await this.makeRequest<ApiResponse<any>>(`/public/forms`);
+      return response?.data ?? null;
+    } catch (err: any) {
+      if (err && (err.status === 404 || /\b404\b/.test(String(err.message || '')))) {
+        return null;
+      }
+      console.error('Error fetching public lead form:', err);
+      return null;
+    }
   }
 
   private transformPost(data: any): Post {
@@ -531,6 +695,11 @@ class BlazeBlogClient {
 
     const featuredImage = transformImageUrl(post.featuredImage);
 
+    // Normalize dates from various possible API shapes
+    const createdAt = post.createdAt || post.created_at || post.created_on || post.createdDate || null;
+    const publishedAt = post.publishedAt || post.published_at || post.publishedOn || post.published_on || createdAt || null;
+    const updatedAt = post.updatedAt || post.updated_at || post.updated_on || null;
+
     return {
       id: post.id,
       title: post.title,
@@ -538,9 +707,9 @@ class BlazeBlogClient {
       excerpt: post.excerpt,
       content: post.content,
       featuredImage,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-      publishedAt: post.publishedAt || post.createdAt,
+      createdAt: createdAt || undefined,
+      updatedAt: updatedAt || undefined,
+      publishedAt: publishedAt || undefined,
       minsRead: post.minsRead || 5,
       readingTime: post.readingTime || post.minsRead || 5,
       user: post.user,
@@ -556,6 +725,8 @@ class BlazeBlogClient {
     };
   }
 }
+
+
 
 export const blazeblog = new BlazeBlogClient(API_BASE_URL, config.blog.tenantSlug, 'localhost:3000');
 

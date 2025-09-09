@@ -50,22 +50,22 @@ const SearchBar = () => {
         <input
           type="text"
           placeholder="Search…"
-          className="input input-bordered w-48 md:w-64 bg-neutral-focus text-neutral-content placeholder-neutral-content/50"
+          className="input input-bordered w-48 md:w-64 bg-base-100 text-base-content placeholder-base-content/60 focus:border-primary"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
         />
       </div>
       {isFocused && (query.length > 0) && (
-        <div className="absolute mt-2 w-full md:w-96 max-h-96 overflow-y-auto rounded-box shadow-2xl bg-neutral text-neutral-content z-20 right-0">
-          {isLoading && <div className="p-4 text-center">Loading...</div>}
+        <div className="absolute mt-2 w-full md:w-96 max-h-96 overflow-y-auto rounded-box shadow-2xl bg-base-100 text-base-content border border-base-300 z-20 right-0">
+          {isLoading && <div className="p-4 text-center opacity-70">Loading...</div>}
           {!isLoading && results.length === 0 && debouncedQuery && (
-            <div className="p-4 text-center">No results found.</div>
+            <div className="p-4 text-center opacity-70">No results found.</div>
           )}
-          <ul className="menu p-0">
+          <ul className="menu p-0 divide-y divide-base-200">
             {results.map((post) => (
-              <li key={post.id}>
-                <Link href={`/${post.slug}`} onClick={() => { setQuery(''); setIsFocused(false); }}>
+              <li key={post.id} className="hover:bg-base-200">
+                <Link href={`/${post.slug}`} onClick={() => { setQuery(''); setIsFocused(false); }} className="py-3 px-4">
                   {post.title}
                 </Link>
               </li>

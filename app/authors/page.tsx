@@ -1,16 +1,16 @@
 import { getSSRBlazeBlogClient, Post } from "@/lib/blazeblog";
 import { Metadata } from "next";
 import Link from "next/link"; // Assuming we will link to author pages later
-
-export const metadata: Metadata = {
-  title: "All Authors",
-  description: "A list of all authors who have contributed to the blog.",
-};
+import { getCachedSiteConfig } from "@/lib/config";
+import JsonLd from "@/components/JsonLd";
 
 const AllAuthorsPage = async () => {
   const client = await getSSRBlazeBlogClient();
-  // Fetch all posts to derive the author list. This could be paginated if the number of posts is very large.
-  const { posts } = await client.getPosts({ limit: 1000 });
+  const [postsResult, config] = await Promise.all([
+    client.getPosts({ limit: 1000 }),
+    getCachedSiteConfig(),
+  ]);
+  const { posts } = postsResult;
 
   const authors = posts.reduce((acc: { [key: number]: Post['user'] }, post) => {
     if (post.user && !acc[post.user.id]) {
@@ -23,6 +23,9 @@ const AllAuthorsPage = async () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {Array.isArray(postsResult.seo?.jsonLd) && postsResult.seo!.jsonLd.map((node: any, idx: number) => (
+        <JsonLd key={idx} data={node} />
+      ))}
       <header className="text-center mb-12">
         <h1 className="text-5xl font-bold">Authors</h1>
         <p className="mt-4 text-lg max-w-2xl mx-auto text-base-content/70">
@@ -39,8 +42,15 @@ const AllAuthorsPage = async () => {
                 <span className="text-3xl">{author.username.charAt(0).toUpperCase()}</span>
               </div>
             </div>
-            <h2 className="font-bold">{author.username}</h2>
-            {/* We could add a link here if an author page existed, e.g., <Link href={`/author/${author.id}`}>View posts</Link> */}
+            {config?.featureFlags?.authorLink ? (
+              <h2 className="font-bold">
+                <Link href={`/author/${author.username}`} className="hover:underline">
+                  {author.username}
+                </Link>
+              </h2>
+            ) : (
+              <h2 className="font-bold">{author.username}</h2>
+            )}
           </div>
         ))}
       </div>
@@ -49,3 +59,18 @@ const AllAuthorsPage = async () => {
 };
 
 export default AllAuthorsPage;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const client = await getSSRBlazeBlogClient();
+  try {
+    const result = await client.getPosts({ limit: 1 });
+    if (result?.seo?.meta) {
+      return {
+        title: result.seo.meta.title,
+        description: result.seo.meta.description,
+        alternates: { canonical: result.seo.meta.canonicalUrl },
+      };
+    }
+  } catch {}
+  return { title: 'Authors' };
+}

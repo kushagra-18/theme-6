@@ -2,6 +2,8 @@ import { getSSRBlazeBlogClient } from "@/lib/blazeblog";
 import { getCachedSiteConfig } from "@/lib/config";
 import { notFound } from "next/navigation";
 import LatestPostCard from "@/components/LatestPostCard";
+import JsonLd from "@/components/JsonLd";
+import { Metadata } from "next";
 
 type Props = {
   params: { slug: string };
@@ -26,6 +28,9 @@ export default async function TagPage({ params }: Props) {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {Array.isArray(postsResult.seo?.jsonLd) && postsResult.seo!.jsonLd.map((node: any, idx: number) => (
+        <JsonLd key={idx} data={node} />
+      ))}
       <header className="text-center mb-12">
         <h1 className="text-5xl font-bold">{tagName}</h1>
         <p className="mt-4 text-lg max-w-2xl mx-auto text-base-content/70">
@@ -40,4 +45,20 @@ export default async function TagPage({ params }: Props) {
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const client = await getSSRBlazeBlogClient();
+  try {
+    const result = await client.getPosts({ tags: [params.slug], limit: 1 });
+    if (result?.seo?.meta) {
+      return {
+        title: result.seo.meta.title,
+        description: result.seo.meta.description,
+        alternates: { canonical: result.seo.meta.canonicalUrl },
+      };
+    }
+  } catch {}
+  const title = `#${params.slug} - Posts`;
+  return { title };
 }
