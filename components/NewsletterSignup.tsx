@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { blazeblog } from "@/lib/blazeblog";
 
-export default function NewsletterSignup() {
+type Props = { compact?: boolean };
+
+export default function NewsletterSignup({ compact = false }: Props) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,11 +32,11 @@ export default function NewsletterSignup() {
   };
 
   return (
-    <div className="bg-base-200 rounded-lg my-16">
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold">Subscribe to our newsletter</h2>
-        <p className="mt-3 text-lg text-base-content/70">Get the latest stories, weekly.</p>
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-2xl mx-auto">
+    <div className={`bg-base-200 rounded-lg ${compact ? 'my-4 max-w-xl mx-auto' : 'my-12'}`}>
+      <div className={`${compact ? 'px-4 py-6' : 'container mx-auto px-4 py-10'} text-center`}>
+        <h2 className={`${compact ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl'} font-bold`}>Subscribe to our newsletter</h2>
+        <p className={`mt-3 ${compact ? 'text-base' : 'text-lg'} text-base-content/70`}>Get the latest stories, weekly.</p>
+        <form onSubmit={onSubmit} className={`mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 ${compact ? 'max-w-lg' : 'max-w-2xl'} mx-auto`}>
           <input
             type="email"
             required
@@ -62,4 +64,3 @@ export default function NewsletterSignup() {
     </div>
   );
 }
-

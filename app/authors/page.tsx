@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import Link from "next/link"; // Assuming we will link to author pages later
 import { getCachedSiteConfig } from "@/lib/config";
 import JsonLd from "@/components/JsonLd";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 const AllAuthorsPage = async () => {
   const client = await getSSRBlazeBlogClient();
@@ -54,6 +55,12 @@ const AllAuthorsPage = async () => {
           </div>
         ))}
       </div>
+
+      {config?.featureFlags?.enableNewsletters && (
+        <div className="mt-8">
+          <NewsletterSignup compact />
+        </div>
+      )}
     </div>
   );
 };

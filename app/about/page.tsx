@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Image from "next/image";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export const metadata: Metadata = {
   title: "About This Theme",
@@ -57,6 +58,11 @@ const AboutPage = () => {
           </p>
 
         </article>
+      </div>
+    </div>
+    <div className="container mx-auto px-4">
+      <div className="max-w-3xl mx-auto">
+        <NewsletterSignup />
       </div>
     </div>
   );

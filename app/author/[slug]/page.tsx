@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import FeaturedCard from "@/components/FeaturedCard";
 import JsonLd from "@/components/JsonLd";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 type Props = {
   params: { slug: string };
@@ -93,6 +94,11 @@ export default async function AuthorPage({ params, searchParams }: Props) {
               Next
             </Link>
           )}
+        </div>
+      )}
+      {config?.featureFlags?.enableNewsletters && (
+        <div className="mt-8">
+          <NewsletterSignup compact />
         </div>
       )}
     </div>

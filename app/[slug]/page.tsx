@@ -27,6 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 import { resizeImageUrl } from "@/lib/image";
 import LeadFormModal from "@/components/LeadFormModel";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default async function PostPage({ params }: Props) {
   const client = await getSSRBlazeBlogClient();
@@ -51,18 +52,20 @@ export default async function PostPage({ params }: Props) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Views tracking runs on client after page is responsive */}
       <ViewsTracker />
       <article className="max-w-3xl mx-auto">
         <header className="mb-8 text-center">
-          {/* Tag Chip */}
-          {post.tags && post.tags.length > 0 && (
-            <Link href={`/tag/${post.tags[0].slug}`} className="btn btn-sm btn-outline rounded-full mb-4">
-              {post.tags[0].name}
-            </Link>
+          {post.category && (
+            config.featureFlags.enableCategoriesPage ? (
+              <Link href={`/category/${post.category.slug}`} className="btn btn-sm btn-outline rounded-full mb-4">
+                {post.category.name}
+              </Link>
+            ) : (
+              <span className="badge badge-outline rounded-full mb-4 px-3 py-3">{post.category.name}</span>
+            )
           )}
 
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight">{post.title}</h1>
+          <h1 className="text-4xl md:text-5xl font-bold leading-tight">{post.title}</h1>
 
           <div className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap mt-6 text-sm text-base-content/70">
             <span className="inline-flex items-center">
@@ -125,6 +128,25 @@ export default async function PostPage({ params }: Props) {
           className="prose lg:prose-xl max-w-none"
           dangerouslySetInnerHTML={{ __html: post.content || "" }}
         />
+
+        {/* Tags Row (cool compact chips) */}
+        {post.tags && post.tags.length > 0 && (
+          <div className="mt-8 flex flex-wrap items-center gap-2">
+            <span className="text-sm uppercase tracking-wide text-base-content/60 mr-2 inline-flex items-center">
+              <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.41 11.58 12.42 2.59A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .59 1.41l8.99 8.99a2 2 0 0 0 2.83 0l7-7a2 2 0 0 0 0-2.82ZM6.5 9A1.5 1.5 0 1 1 8 7.5 1.5 1.5 0 0 1 6.5 9Z"/></svg>
+              Tags
+            </span>
+            {post.tags.map(tag => (
+              config.featureFlags.enableTagsPage ? (
+                <Link key={tag.id} href={`/tag/${tag.slug}`} className="badge badge-outline hover:bg-base-200 hover:border-base-300">
+                  {tag.name}
+                </Link>
+              ) : (
+                <span key={tag.id} className="badge badge-outline">{tag.name}</span>
+              )
+            ))}
+          </div>
+        )}
       </article>
 
       {/* "Read More" Section */}
@@ -141,6 +163,11 @@ export default async function PostPage({ params }: Props) {
       {config.featureFlags.enableComments && (
         <div className="max-w-3xl mx-auto">
           <CommentSection postId={post.id} postSlug={post.slug} />
+        </div>
+      )}
+      {config.featureFlags.enableNewsletters && (
+        <div className="mt-8">
+          <NewsletterSignup compact />
         </div>
       )}
       {/* JSON-LD structured data from API */}

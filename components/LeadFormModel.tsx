@@ -112,52 +112,73 @@ export default function LeadFormModal() {
     setValues(fieldsMap);
   }, [fieldsMap]);
 
-  useEffect(() => {
-    setMounted(true);
-    const t = setTimeout(async () => {
-      setLoading(true);
-      setError(null);
+  const attemptOpen = useCallback(async () => {
+    if (open || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const lf: any = await blazeblog.getActivePublicLeadForm();
+      if (!lf) {
+        setLoading(false);
+        return;
+      }
       try {
-        const lf: any = await blazeblog.getActivePublicLeadForm();
-        if (!lf) {
+        const submitted = localStorage.getItem(`bb_lead_form_submitted_${lf.id}`);
+        if (submitted === 'true') {
           setLoading(false);
           return;
         }
-        // Respect submitted and dismissed cooldown
-        try {
-          const submitted = localStorage.getItem(`bb_lead_form_submitted_${lf.id}`);
-          if (submitted === 'true') {
-            setLoading(false);
-            return;
-          }
-          const dismissedAtStr = localStorage.getItem(`bb_lead_form_dismissed_at_${lf.id}`);
-          const dismissedAt = dismissedAtStr ? Number(dismissedAtStr) : 0;
-          const DAY_MS = 24 * 60 * 60 * 1000;
-          if (IS_PROD && dismissedAt && Date.now() - dismissedAt < DAY_MS) {
-            setLoading(false);
-            return;
-          }
-        } catch {}
-        if (lf && lf.steps && lf.steps.length > 0) {
-          lf.steps = [...lf.steps]
-            .sort((a: any, b: any) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0))
-            .map((s: any) => ({
-              ...s,
-              fields: [...(s.fields || [])].sort((a: any, b: any) => (a.fieldOrder ?? 0) - (b.fieldOrder ?? 0))
-            }));
-          setForm(lf);
-          setOpen(true);
-          setShownAt(Date.now());
+        const dismissedAtStr = localStorage.getItem(`bb_lead_form_dismissed_at_${lf.id}`);
+        const dismissedAt = dismissedAtStr ? Number(dismissedAtStr) : 0;
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        if (IS_PROD && dismissedAt && Date.now() - dismissedAt < DAY_MS) {
+          setLoading(false);
+          return;
         }
-      } catch (e: any) {
-        console.error(e);
-        setError(e?.message || 'Failed to load lead form');
-      } finally {
-        setLoading(false);
+      } catch {}
+      if (lf && lf.steps && lf.steps.length > 0) {
+        lf.steps = [...lf.steps]
+          .sort((a: any, b: any) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0))
+          .map((s: any) => ({
+            ...s,
+            fields: [...(s.fields || [])].sort((a: any, b: any) => (a.fieldOrder ?? 0) - (b.fieldOrder ?? 0))
+          }));
+        setForm(lf);
+        setOpen(true);
+        setShownAt(Date.now());
       }
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || 'Failed to load lead form');
+    } finally {
+      setLoading(false);
+    }
+  }, [IS_PROD, open, loading]);
+
+  useEffect(() => {
+    setMounted(true);
+    const t = setTimeout(() => {
+      attemptOpen();
     }, 5000);
     return () => clearTimeout(t);
-  }, []);
+  }, [attemptOpen]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    let fired = false;
+    const onMouseOut = (e: MouseEvent) => {
+      if (fired || open) return;
+      const y = (e.clientY || 0);
+      if (y <= 0) {
+        fired = true;
+        attemptOpen();
+      }
+    };
+    window.addEventListener('mouseout', onMouseOut);
+    return () => {
+      window.removeEventListener('mouseout', onMouseOut);
+    };
+  }, [mounted, open, attemptOpen]);
 
   const currentStep = useMemo(() => {
     if (!form) return null;
@@ -207,12 +228,10 @@ export default function LeadFormModal() {
       if (res) {
         setSubmitMessage('Thanks! Your details have been submitted.');
         try { localStorage.setItem(`bb_lead_form_submitted_${form.id}`, 'true'); } catch {}
-        // Close after a moment
         setTimeout(() => setOpen(false), 1200);
       }
     } catch (e: any) {
       console.error(e);
-      // If submission endpoint is not available yet, still show a friendly message
       setSubmitMessage('Thanks! We have recorded your interest.');
       try { if (form) localStorage.setItem(`bb_lead_form_submitted_${form.id}`, 'true'); } catch {}
       setTimeout(() => setOpen(false), 1200);

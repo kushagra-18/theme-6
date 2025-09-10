@@ -27,7 +27,7 @@ const Footer = ({ config }: FooterProps) => {
   const siteTitle = config.siteConfig.seoTitle || "BlazeBlog";
 
   return (
-    <footer className="bg-neutral text-neutral-content mt-12">
+    <footer className="bg-neutral text-neutral-content mt-8">
       <div className="container mx-auto px-4 py-6">
         <div className="border-t border-neutral-focus pt-6 flex flex-col md:flex-row items-center justify-between">
           {/* Left: Site Title & Utility Links */}

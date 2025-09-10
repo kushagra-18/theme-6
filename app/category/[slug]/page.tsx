@@ -2,6 +2,7 @@ import { getSSRBlazeBlogClient } from "@/lib/blazeblog";
 import { getCachedSiteConfig } from "@/lib/config";
 import { notFound } from "next/navigation";
 import LatestPostCard from "@/components/LatestPostCard";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import JsonLd from "@/components/JsonLd";
 import { Metadata } from "next";
 
@@ -42,6 +43,12 @@ export default async function CategoryPage({ params }: Props) {
           <LatestPostCard key={post.id} post={post} config={config} />
         ))}
       </div>
+
+      {config.featureFlags.enableNewsletters && (
+        <div className="mt-8">
+          <NewsletterSignup compact />
+        </div>
+      )}
     </div>
   );
 }
