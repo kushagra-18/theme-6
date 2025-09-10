@@ -25,7 +25,7 @@ type LeadStep = {
 type LeadForm = {
   id: string;
   name?: string;
-  description?: string; // markdown
+  description?: string; 
   isMultiStep?: boolean;
   status?: string;
   steps: LeadStep[];
@@ -45,22 +45,18 @@ function normalizeOptions(opts: LeadField["options"]): Array<{ value: string; la
   return [];
 }
 
-// Minimal markdown to HTML for headings, bold, italics, and links
 function mdToHtml(md?: string): string {
   if (!md) return '';
   let html = md;
-  // Escape basic HTML (very basic; admins control content)
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // Headings
   html = html.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
   html = html.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
   html = html.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
-  // Bold and italics
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
   // Links
   html = html.replace(/\[(.*?)\]\((https?:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1<\/a>');
-  // Paragraphs: split on double newlines
   html = html.split(/\n{2,}/).map(block => {
     if (/^<h[1-6]>/.test(block)) return block; // leave headings as-is
     return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
@@ -80,14 +76,12 @@ export default function LeadFormModal() {
   const [shownAt, setShownAt] = useState<number | null>(null);
   const IS_PROD = process.env.NODE_ENV === 'production';
 
-  // Flat map of field values keyed by field id
   const fieldsMap = useMemo(() => {
     if (!form) return {} as Record<string, any>;
     const acc: Record<string, any> = {};
     for (const step of form.steps || []) {
       for (const field of step.fields || []) {
         if (acc[field.id] === undefined) {
-          // default value by type
           switch (field.type) {
             case 'checkbox':
               acc[field.id] = field.options ? [] : false; // multi vs single
